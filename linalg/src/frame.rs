@@ -2,6 +2,8 @@
 pub mod element_wise;
 
 #[macro_use]
+pub mod binary;
+#[macro_use]
 pub mod by_scalar;
 #[macro_use]
 pub mod lut;
