@@ -1506,6 +1506,11 @@ impl Tensor {
         compute_natural_stride_to(&mut strides, shape);
         strides
     }
+
+    pub fn into_blob(mut self) -> TractResult<Blob> {
+        ensure!(self.dt.is_copy());
+        Ok(std::mem::take(&mut self.data))
+    }
 }
 
 impl PartialEq for Tensor {
