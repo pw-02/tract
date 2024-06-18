@@ -1,13 +1,28 @@
+use std::fs::File;
+use std::io::BufWriter;
+
 use tract_onnx::prelude::*;
+use onnx::ModelProto;
+use tract_onnx::tract_core::ops::submodel::InnerModel;
 
 fn main() -> TractResult<()> {
     let model = tract_onnx::onnx()
         // load the model
-        .model_for_path("mobilenetv2-7.onnx")?
+        .model_for_path("examples\\onnx-mobilenet-v2\\mobilenetv2-7.onnx")?
         // optimize the model
-        .into_optimized()?
+        .into_optimized()
         // make the model runnable and fix its inputs and outputs
         .into_runnable()?;
+
+    // let model_proto = ModelProto::default();
+
+    // // Define the path where you want to save the optimized ONNX model
+    // let optimized_model_path = "examples\\onnx-mobilenet-v2\\optimized_mobilenetv2.onnx";
+    // // Save the optimized model to a file
+    
+    // // Write the model data to a file
+    // let mut writer = BufWriter::new(File::create(optimized_model_path)?);
+    // writer.write_all(&model_data)?;
 
     // open image, resize it and make a Tensor out of it
     let image = image::open("grace_hopper.jpg").unwrap().to_rgb8();
