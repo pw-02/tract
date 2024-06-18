@@ -1,20 +1,40 @@
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::{BufWriter, Write};
+use serde::{Serialize, Deserialize};
+use std::path::{Path, PathBuf};
 
-use tract_onnx::prelude::*;
-use onnx::ModelProto;
+use tract_onnx::{prelude::*, tract_core};
+// use onnx::ModelProto;
 use tract_onnx::tract_core::ops::submodel::InnerModel;
+use tract_core::ops::konst::Const;
+
+#[derive(Serialize, Deserialize)]
+struct TensorData {
+    // name: String,
+    data: Vec<f32>,
+    shape: Vec<usize>,
+}
+
 
 fn main() -> TractResult<()> {
-    let model = tract_onnx::onnx()
-        // load the model
-        .model_for_path("examples\\onnx-mobilenet-v2\\mobilenetv2-7.onnx")?
-        // optimize the model
-        .into_optimized()
-        // make the model runnable and fix its inputs and outputs
-        .into_runnable()?;
+    
+    let mut model = tract_onnx::onnx().model_for_path("examples\\onnx-mobilenet-v2\\simple_cnn.onnx")?;
+    let mut typed_model = model
+        .into_typed()?
+        // .concretize_dims(&symbol_values)?
+        .into_decluttered()?;
+    save_debug_info("examples\\onnx-mobilenet-v2\\typed_model_debug.txt", &typed_model)?;
 
-    // let model_proto = ModelProto::default();
+    // let tensors = model.nodes().to_vec();
+    // // Serialize tensors to JSON
+    // let json_data = serde_json::to_string(&tensors)?;
+
+    //  // Save JSON to file
+    //  let mut file = File::create("tensors.json")?;
+    //  file.write_all(json_data.as_bytes())?;
+     //println!("{:?}", tensors);
+
+    //let parse_Result =  tract_onnx::onnx().parse(model).unwrap();
 
     // // Define the path where you want to save the optimized ONNX model
     // let optimized_model_path = "examples\\onnx-mobilenet-v2\\optimized_mobilenetv2.onnx";
@@ -24,27 +44,12 @@ fn main() -> TractResult<()> {
     // let mut writer = BufWriter::new(File::create(optimized_model_path)?);
     // writer.write_all(&model_data)?;
 
-    // open image, resize it and make a Tensor out of it
-    let image = image::open("grace_hopper.jpg").unwrap().to_rgb8();
-    let resized =
-        image::imageops::resize(&image, 224, 224, ::image::imageops::FilterType::Triangle);
-    let image: Tensor = tract_ndarray::Array4::from_shape_fn((1, 3, 224, 224), |(_, c, y, x)| {
-        let mean = [0.485, 0.456, 0.406][c];
-        let std = [0.229, 0.224, 0.225][c];
-        (resized[(x as _, y as _)][c] as f32 / 255.0 - mean) / std
-    })
-    .into();
+    Ok(())
+}
 
-    // run the model on the input
-    let result = model.run(tvec!(image.into()))?;
-
-    // find and display the max value with its index
-    let best = result[0]
-        .to_array_view::<f32>()?
-        .iter()
-        .cloned()
-        .zip(2..)
-        .max_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-    println!("result: {best:?}");
+fn save_debug_info<P: AsRef<Path>>(file_path: P, typed_model: &TypedModel) -> std::io::Result<()> {
+    let debug_info = format!("{:?}", typed_model);
+    let mut file = File::create(file_path)?;
+    file.write_all(debug_info.as_bytes())?;
     Ok(())
 }
